@@ -1,0 +1,53 @@
+name: Tap CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tap-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  formula:
+    name: Cask checks
+    runs-on: macos-latest
+    timeout-minutes: 15
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_ANALYTICS: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check cask syntax
+        run: ruby -c Casks/zalki.rb
+      - name: Add local tap
+        run: brew tap zalkilabs/tap "$GITHUB_WORKSPACE"
+      - name: Trust the reviewed cask
+        run: brew trust --cask zalkilabs/tap/zalki
+      - name: Check cask style
+        run: brew style --cask zalkilabs/tap/zalki
+      - name: Validate cask across Homebrew platforms
+        run: brew readall --os=all --arch=all zalkilabs/tap
+      - name: Install the published binary without credentials
+        run: env -u GH_TOKEN -u GITHUB_TOKEN -u HOMEBREW_GITHUB_API_TOKEN brew install --no-ask zalkilabs/tap/zalki
+      - name: Check binary and completions
+        run: |
+          package_version=$(brew info --cask --json=v2 zalkilabs/tap/zalki | ruby -rjson -e 'puts JSON.parse(STDIN.read).fetch("casks").fetch(0).fetch("version")')
+          brew_prefix=$(brew --prefix)
+          case "$(PATH=/usr/bin:/bin:/usr/sbin:/sbin ZALKI_LOG_LEVEL=off "$brew_prefix/bin/zalki" version)" in
+            "$package_version"|"$package_version"+*) ;;
+            *) echo 'Installed binary version differs from the cask' >&2; exit 1 ;;
+          esac
+          "$brew_prefix/bin/zalki" --help | grep -F 'Local messaging'
+          test -e "$brew_prefix/etc/bash_completion.d/zalki"
+          test -e "$brew_prefix/share/zsh/site-functions/_zalki"
+          test -e "$brew_prefix/share/fish/vendor_completions.d/zalki.fish"
+      - name: Check uninstall
+        run: brew uninstall --cask zalkilabs/tap/zalki
