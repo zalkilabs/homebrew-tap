@@ -1,9 +1,9 @@
 cask "zalki" do
   arch arm: "arm64", intel: "amd64"
 
-  version "0.1.0-rc.4"
-  sha256 arm:   "2bfa6768810d5b18e2ee65b1270426a81acafbd43ca108b1c3fbd02ae03dd9ca",
-         intel: "94416347cf368fb806aea1245dfc244a243dea848d256a6ee5354d5b5339881c"
+  version "0.1.0-rc.5"
+  sha256 arm:   "20fdcb599fbbefab2e046d8c5137de29e7edb7f327863fd9a715941adb633c5b",
+         intel: "e478667307c5346eaed27418b675bebfed8a83fafcf2da2c26ba4fdc9be4732e"
 
   url "https://github.com/zalkilabs/zalki/releases/download/v#{version}/zalki_#{version}_darwin_#{arch}.tar.gz"
   name "Zalki"
